@@ -5,6 +5,7 @@ from contextlib import contextmanager
 import sys
 
 @contextmanager
+#this is the exception handling for all web requests made out of this application
 def requestHandler():
     try:
         yield
@@ -72,7 +73,7 @@ def logOutUsers(userList):
         
        
         
-
+#this is a comment
 if(mode=='digest'):
     print(getAllLoggedInUsers())
 else:
