@@ -25,8 +25,9 @@ def requestHandler():
         print(e)
         print("Shit, this is real bad, I don't know what happened here")
         
-    finally:
-        sys.exit(1)
+    #finally:
+        #common exception handling here (probably make a logger?)
+        
         
     
 parser = argparse.ArgumentParser(description='Script to log agents out of Finesse')
@@ -49,19 +50,27 @@ usernames = args.username
 loggedInUsers = []
 
 def getAllLoggedInUsers():
+    
+    #context managers are my shit
     with requestHandler():
         r = requests.get(fqdn + "/finesse/api/Users", auth=(adminUsername,adminPassword))
+        #raises an exception if we get an errant HTTP error code
         r.raise_for_status()
+    
+    #create XML tree
     tree = ET.fromstring(r.content)
-
+    
+    #create a parent mapping dictionary
     parent_map = dict((c, p) for p in tree.getiterator() for c in p)
-
+    
+    #iterate through the tree and look for all the logged in users
     for child in tree:
         for subchild in [x for x in child if x.tag=="state" and x.text!="LOGOUT"]:
             parent = parent_map[subchild]
             print(parent.find('firstName').text, parent.find('lastName').text, parent.find('state').text)
             loggedInUsers.append(parent.find('loginId').text)
-
+    
+    #return a list of logged in users for other processing
     return loggedInUsers
            
 def logOutUsers(userList):
@@ -71,13 +80,17 @@ def logOutUsers(userList):
             r = requests.put(fqdn + "/finesse/api/User/" + user, data="<User><state>LOGOUT</state></User>", auth=(adminUsername,adminPassword), headers=headers)
             r.raise_for_status()
         
-       
+def main():  
+    if(mode=='digest'):
+        print(getAllLoggedInUsers())
+    else:
+        print("Not built yet")
+
+if __name__ == "__main__":
+    main()
         
-#this is a comment
-if(mode=='digest'):
-    print(getAllLoggedInUsers())
-else:
-    print("Not built yet")
+
+
 
 
 
