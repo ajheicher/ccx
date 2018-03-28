@@ -20,7 +20,7 @@
             ],
             "args": [
                 
-                "-m","digest","-c","aheicher", "215893","-u", "aheicher","rseney","nsikora"
+                "-m","digest","-c","aheicher", "215893"
                 
                 
             ]

@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 import requests
 from contextlib import contextmanager
 import sys
+import time
 
 @contextmanager
 #this is the exception handling for all web requests made out of this application
@@ -11,7 +12,7 @@ def requestHandler():
         yield
     except requests.exceptions.HTTPError as eh:
         print(eh)
-        print("The error above should give you a good idea what happened, if you aren't an idiot")
+        print("The error above should give you a good idea what happened")
         
     except requests.exceptions.Timeout as et:
         print(et)
@@ -23,7 +24,7 @@ def requestHandler():
         
     except requests.exceptions.RequestException as e:
         print(e)
-        print("Shit, this is real bad, I don't know what happened here")
+        print("This is real bad, I don't know what happened here")
         
     #finally:
         #common exception handling here (probably make a logger?)
@@ -49,6 +50,7 @@ mode = args.mode
 usernames = args.username
 loggedInUsers = []
 
+
 def getAllLoggedInUsers():
     
     #context managers are my shit
@@ -63,16 +65,44 @@ def getAllLoggedInUsers():
     #create a parent mapping dictionary
     parent_map = dict((c, p) for p in tree.getiterator() for c in p)
     
+    talkingCount = 0
+    userCount = 0
     #iterate through the tree and look for all the logged in users
     for child in tree:
         for subchild in [x for x in child if x.tag=="state" and x.text!="LOGOUT"]:
             parent = parent_map[subchild]
+            userCount += 1
+            if(parent.find('state').text == "TALKING"):
+                talkingCount+=1
             print(parent.find('firstName').text, parent.find('lastName').text, parent.find('state').text)
             loggedInUsers.append(parent.find('loginId').text)
     
+    
+    print("Talking: {} ({}%)".format(talkingCount, round(talkingCount/userCount*100,2)))
+    
+    print("Total: ",userCount)
     #return a list of logged in users for other processing
     return loggedInUsers
-           
+
+def getSkills(user):
+
+
+    with requestHandler():
+        r = requests.get(fqdn + "/finesse/api/User/" + user,auth=(adminUsername,adminPassword))
+        r.raise_for_status()
+
+        r2 = requests.get(fqdn + "/finesse/api/User/" + user + "/Queues",auth=(adminUsername,adminPassword))
+        r2.raise_for_status()
+    
+    userTree = ET.fromstring(r.content)
+    queueTree = ET.fromstring(r2.content)
+
+    print("{} {}".format(userTree.find('firstName').text, userTree.find('lastName').text))
+    print("\nSkills:")
+    for skill in queueTree:
+        print(" {}".format(skill.find("name").text))
+
+
 def logOutUsers(userList):
     headers = {'content-type': 'application/xml'}
     for user in userList:
@@ -82,10 +112,14 @@ def logOutUsers(userList):
         
 def main():  
     if(mode=='digest'):
+        start_time=time.time()
         print(getAllLoggedInUsers())
+        #getSkills("aheicher")
+        print("--- %s seconds ---" % (time.time() - start_time))
     else:
         print("Not built yet")
 
+#look, were all pythonic(tm)
 if __name__ == "__main__":
     main()
         
